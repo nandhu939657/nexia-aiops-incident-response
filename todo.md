@@ -83,9 +83,9 @@
 - [x] Add schedule status and last-run visibility to the Jobs workspace
 - [x] Add cron-monitor tests for healthy, unhealthy, retry, and idempotency behavior
 - [x] Document that the platform schedule requires a deployed production URL before activation
-- [ ] Save and deliver an updated checkpoint
+- [x] Save and deliver an updated checkpoint
 
-- [ ] Create the platform-managed `payment-service-monitor` cron after the user deploys the checkpointed site
+- [x] Create the platform-managed `payment-service-monitor` cron after the user deploys the checkpointed site (task UID: `8GAT2WbvdH2VbU7Q7vZ5qV`; execution history was empty during the verification window)
 
 - [x] Make the payment monitor explicitly evaluate the `/health` JSON contract instead of reading only in-process service state
 - [x] Require two consecutive unhealthy scheduled checks before creating the payment incident
@@ -102,4 +102,4 @@
 - [x] Copy Markdown runbooks into `dist/runbooks` during the production build
 - [x] Verify every packaged runbook exists at the runtime path expected by the bundled server
 - [x] Run typecheck, tests, production build, and a production-style startup smoke test
-- [ ] Save and deliver a corrected deployment checkpoint
+- [x] Save and deliver a corrected deployment checkpoint
