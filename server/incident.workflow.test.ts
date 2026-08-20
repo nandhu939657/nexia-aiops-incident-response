@@ -70,3 +70,16 @@ describe("incident response workflow", () => {
     expect(getServiceStatus()).toBe("healthy");
   });
 });
+
+  it("completes the multi-page response journey from signal to documented resolution", async () => {
+    const caller = appRouter.createCaller(ctx);
+    await caller.service.simulateFailure();
+    const created = await caller.incidents.create();
+    expect((await caller.incidents.get({ id: created.id })).status).toBe("Awaiting approval");
+    const voice = await caller.incidents.triggerVoiceAlert({ id: created.id });
+    expect(voice.dispatch.endpoint).toBe("/api/v1/calls/dispatch");
+    const resolved = await caller.incidents.approveRemediation({ id: created.id, confirmation: "APPROVE" });
+    expect(resolved.status).toBe("Resolved");
+    expect(resolved.notification).toContain("payment-service");
+    expect(resolved.postMortemMarkdown).toContain("## Follow-up items");
+  });

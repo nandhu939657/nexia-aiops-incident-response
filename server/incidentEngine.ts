@@ -198,7 +198,7 @@ export function setServiceStatus(status: ServiceStatus) {
 }
 
 export function listRunbooks() {
-  return runbooks.map(({ markdown, keywords, ...runbook }) => runbook);
+  return runbooks.map(({ keywords, ...runbook }) => runbook);
 }
 
 export function listIncidents() {
