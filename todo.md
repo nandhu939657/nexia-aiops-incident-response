@@ -71,7 +71,7 @@
 - [x] Add provider/integration status page with setup guidance and connection health
 - [x] Add background-job runbooks and LLM classification coverage
 - [x] Add real-job tests and cross-page monitoring workflow tests
-- [ ] Add required secrets through the project secret manager only when live integrations are enabled
+- [x] Add required secrets through the project secret manager only when live integrations are enabled (not required for the current webhook/manual monitor mode)
 - [x] Verify the real-job flows and save an updated checkpoint
 
 # Scheduled payment-service monitor
@@ -96,3 +96,10 @@
 - [x] Re-run direct `/health` and manual monitor endpoint verification
 
 - [x] Capture the explicit JSON response and HTTP status from `POST /api/monitor/payment/run-now` after the health-parser changes
+
+# Deployment startup fix
+
+- [x] Copy Markdown runbooks into `dist/runbooks` during the production build
+- [x] Verify every packaged runbook exists at the runtime path expected by the bundled server
+- [x] Run typecheck, tests, production build, and a production-style startup smoke test
+- [ ] Save and deliver a corrected deployment checkpoint
