@@ -7,7 +7,9 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { getServiceStatus } from "../incidentEngine";
+import { getPaymentHealthResponse, heartbeatJob, ingestProviderEvent } from "../incidentEngine";
+import { sdk } from "./sdk";
+import { getPaymentMonitorState, runPaymentMonitor } from "../paymentMonitor";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -38,8 +40,52 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   app.get("/health", (_req, res) => {
-    const status = getServiceStatus();
-    res.json({ service: "payment-service", status });
+    res.json(getPaymentHealthResponse());
+  });
+  const authorizeJobRequest = (req: express.Request, res: express.Response) => {
+    const expected = process.env.NEXIA_JOB_INGEST_TOKEN;
+    if (!expected) return true;
+    if (req.header("x-nexia-job-token") === expected) return true;
+    res.status(401).json({ ok: false, error: "invalid-job-token" });
+    return false;
+  };
+  app.post("/api/scheduled/payment-monitor", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isCron || !user.taskUid) return res.status(403).json({ ok: false, error: "cron-only" });
+      return res.json(await runPaymentMonitor("scheduled"));
+    } catch (error) {
+      return res.status(500).json({ ok: false, error: error instanceof Error ? error.message : "scheduled-monitor-failed", context: { path: "/api/scheduled/payment-monitor" }, timestamp: new Date().toISOString() });
+    }
+  });
+  app.post("/api/monitor/payment/run-now", async (req, res) => {
+    if (!authorizeJobRequest(req, res)) return;
+    try { return res.json(await runPaymentMonitor("manual")); }
+    catch (error) { return res.status(500).json({ ok: false, error: error instanceof Error ? error.message : "payment-monitor-failed" }); }
+  });
+  app.get("/api/monitor/payment/status", (_req, res) => res.json({ ok: true, monitor: getPaymentMonitorState() }));
+  app.post("/api/jobs/heartbeat", (req, res) => {
+    if (!authorizeJobRequest(req, res)) return;
+    try {
+      const { id, status, durationMs, externalId, metadata } = req.body ?? {};
+      res.json({ ok: true, job: heartbeatJob({ id, status, durationMs, externalId, metadata }) });
+    } catch (error) {
+      res.status(400).json({ ok: false, error: error instanceof Error ? error.message : "invalid-heartbeat" });
+    }
+  });
+  app.post("/api/webhooks/firecrawl", (req, res) => {
+    if (!authorizeJobRequest(req, res)) return;
+    const body = req.body ?? {};
+    const statusMap: Record<string, "running" | "succeeded" | "failed" | "healthy"> = { started: "running", page: "running", completed: "succeeded", failed: "failed" };
+    const status = statusMap[String(body.type ?? body.event ?? body.status)] ?? "running";
+    res.json(ingestProviderEvent("firecrawl", { externalId: body.id ?? body.jobId, status, message: body.error ?? body.message }));
+  });
+  app.post("/api/webhooks/apify", (req, res) => {
+    if (!authorizeJobRequest(req, res)) return;
+    const body = req.body ?? {};
+    const rawStatus = String(body.status ?? body.eventType ?? body.event ?? "RUNNING").toUpperCase();
+    const status = rawStatus.includes("SUCCEED") ? "succeeded" : rawStatus.includes("FAIL") ? "failed" : rawStatus.includes("ABORT") ? "paused" : "running";
+    res.json(ingestProviderEvent("apify", { externalId: body.resource?.id ?? body.runId ?? body.id, status, message: body.errorMessage ?? body.message, durationMs: body.resource?.stats?.runTimeSecs ? body.resource.stats.runTimeSecs * 1000 : undefined }));
   });
   // tRPC API
   app.use(

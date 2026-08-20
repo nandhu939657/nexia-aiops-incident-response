@@ -49,13 +49,50 @@
 - [x] Add and verify the `incidents.get` tRPC procedure used by the dedicated detail route
 - [x] Add page and route tests for Incidents, IncidentDetail, Runbooks, Activity, and Settings
 - [x] Verify the full multi-page simulate, approve, remediate, OmniDim, notification, and post-mortem workflow
-- [ ] Save and deliver a new checkpoint for the multi-page refactor
+- [x] Save and deliver a new checkpoint for the multi-page refactor
 
 - [x] Add App-level route coverage for `/incidents`, `/incidents/:id`, `/runbooks`, `/activity`, and `/settings`
 - [x] Add a cross-page workflow test covering simulate, approval gating, remediation, OmniDim preparation, notification, and post-mortem output
-- [ ] Save and deliver the updated multi-page checkpoint
+- [x] Save and deliver the updated multi-page checkpoint
 
 - [x] Add an App/UI integration test for incidents-to-detail navigation, blocked approval, OmniDim preparation, approval, notification, and post-mortem rendering
 
 - [x] Extend the App/UI integration test to start on `/incidents` and navigate through the detail-page link
 - [x] Assert a visible OmniDim preparation result after the prepare-call action
+
+# Real application and background-job monitoring
+
+- [x] Add monitored-job data model for service, provider, heartbeat, status, last success, duration, retries, and failure details
+- [x] Add provider types for internal jobs, Firecrawl tasks, Apify actors, and generic HTTP/webhook jobs
+- [x] Add authenticated job heartbeat and failure-ingestion endpoints
+- [x] Add provider-aware status polling/adapters without hardcoding private credentials
+- [x] Add safe remediation actions for retry, pause, replay, and provider-specific task recovery with mandatory approval
+- [x] Add Jobs monitoring page with live status, stale-heartbeat detection, filters, and detail view
+- [x] Add provider/integration status page with setup guidance and connection health
+- [x] Add background-job runbooks and LLM classification coverage
+- [x] Add real-job tests and cross-page monitoring workflow tests
+- [ ] Add required secrets through the project secret manager only when live integrations are enabled
+- [x] Verify the real-job flows and save an updated checkpoint
+
+# Scheduled payment-service monitor
+
+- [x] Add platform-managed scheduled endpoint under `/api/scheduled/`
+- [x] Make the payment monitor check `/health` and record idempotent heartbeat state
+- [x] Create an incident signal when repeated scheduled checks observe an unhealthy payment service
+- [x] Add a manual test-trigger path for the same monitor logic
+- [x] Add schedule status and last-run visibility to the Jobs workspace
+- [x] Add cron-monitor tests for healthy, unhealthy, retry, and idempotency behavior
+- [x] Document that the platform schedule requires a deployed production URL before activation
+- [ ] Save and deliver an updated checkpoint
+
+- [ ] Create the platform-managed `payment-service-monitor` cron after the user deploys the checkpointed site
+
+- [x] Make the payment monitor explicitly evaluate the `/health` JSON contract instead of reading only in-process service state
+- [x] Require two consecutive unhealthy scheduled checks before creating the payment incident
+- [x] Add tests for health-response parsing and first-versus-repeated unhealthy checks
+
+- [x] Add a shared parser for `/health` JSON payloads and make the monitor validate that contract
+- [x] Add tests for healthy, unhealthy, and malformed health JSON payloads
+- [x] Re-run direct `/health` and manual monitor endpoint verification
+
+- [x] Capture the explicit JSON response and HTTP status from `POST /api/monitor/payment/run-now` after the health-parser changes

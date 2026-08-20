@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { invokeLLM } from "./_core/llm";
+import type { PaymentHealthPayload } from "./paymentHealth";
 
 export type ServiceStatus = "healthy" | "unhealthy";
 export type Severity = "Critical" | "Warning" | "Informational";
@@ -192,6 +193,10 @@ export function getServiceStatus() {
   return serviceStatus;
 }
 
+export function getPaymentHealthResponse(): PaymentHealthPayload {
+  return { service: "payment-service", status: serviceStatus };
+}
+
 export function setServiceStatus(status: ServiceStatus) {
   serviceStatus = status;
   return { service: "payment-service", status, checkedAt: now() };
@@ -295,4 +300,102 @@ export async function dispatchOmniDim(payload: { agent_id?: string; phone_number
   const body = await response.text();
   if (!response.ok) throw new Error(`OmniDim dispatch failed with ${response.status}: ${body}`);
   return { mode: "live" as const, endpoint: "/api/v1/calls/dispatch", status: "dispatched" as const, body };
+}
+
+export type JobProvider = "internal" | "firecrawl" | "apify" | "generic-webhook";
+export type JobStatus = "healthy" | "running" | "succeeded" | "failed" | "stale" | "paused";
+export type JobAction = "retry" | "pause" | "replay";
+
+export type MonitoredJob = {
+  id: string;
+  name: string;
+  provider: JobProvider;
+  externalId: string;
+  status: JobStatus;
+  lastHeartbeatAt: string;
+  lastSuccessAt?: string;
+  durationMs?: number;
+  retryCount: number;
+  errorMessage?: string;
+  endpoint?: string;
+  approvalRequired: true;
+  suggestedAction: JobAction;
+  metadata: Record<string, string>;
+};
+
+const jobs = new Map<string, MonitoredJob>([
+  ["job-order-reconciliation", { id: "job-order-reconciliation", name: "Order reconciliation worker", provider: "internal", externalId: "worker-order-reconciliation", status: "healthy", lastHeartbeatAt: now(), lastSuccessAt: now(), durationMs: 1840, retryCount: 0, approvalRequired: true, suggestedAction: "retry", metadata: { schedule: "Every 15 minutes", queue: "orders" } }],
+  ["job-firecrawl-docs", { id: "job-firecrawl-docs", name: "Documentation crawl", provider: "firecrawl", externalId: "crawl_demo_docs_001", status: "succeeded", lastHeartbeatAt: now(), lastSuccessAt: now(), durationMs: 12800, retryCount: 0, approvalRequired: true, suggestedAction: "replay", endpoint: "POST /v2/crawl", metadata: { target: "docs.example.com", pages: "42" } }],
+  ["job-apify-leads", { id: "job-apify-leads", name: "Lead enrichment actor", provider: "apify", externalId: "run_demo_leads_001", status: "failed", lastHeartbeatAt: now(), lastSuccessAt: new Date(Date.now() - 86_400_000).toISOString(), durationMs: 52300, retryCount: 2, errorMessage: "Actor exceeded memory limit", approvalRequired: true, suggestedAction: "retry", endpoint: "POST /v2/actors/{actorId}/runs", metadata: { actor: "company~lead-enrichment", dataset: "leads" } }],
+]);
+
+export function listJobs() { return Array.from(jobs.values()).sort((a, b) => b.lastHeartbeatAt.localeCompare(a.lastHeartbeatAt)); }
+export function getJob(id: string) { return jobs.get(id); }
+
+export function heartbeatJob(input: { id: string; status?: JobStatus; durationMs?: number; externalId?: string; metadata?: Record<string, string> }) {
+  const job = jobs.get(input.id);
+  if (!job) throw new Error("Monitored job not found");
+  job.status = input.status ?? "healthy";
+  job.lastHeartbeatAt = now();
+  if (job.status === "healthy" || job.status === "succeeded") job.lastSuccessAt = job.lastHeartbeatAt;
+  if (input.durationMs !== undefined) job.durationMs = input.durationMs;
+  if (input.externalId) job.externalId = input.externalId;
+  if (input.metadata) job.metadata = { ...job.metadata, ...input.metadata };
+  job.errorMessage = undefined;
+  return job;
+}
+
+export function ingestProviderEvent(provider: JobProvider, input: { jobId?: string; externalId?: string; status: JobStatus; message?: string; durationMs?: number }) {
+  const job = Array.from(jobs.values()).find(candidate => candidate.provider === provider && (candidate.id === input.jobId || candidate.externalId === input.externalId));
+  if (!job) return { accepted: true, skipped: "unknown-job" as const };
+  job.status = input.status;
+  job.lastHeartbeatAt = now();
+  if (input.status === "succeeded" || input.status === "healthy") job.lastSuccessAt = job.lastHeartbeatAt;
+  if (input.message) job.errorMessage = input.message;
+  if (input.durationMs !== undefined) job.durationMs = input.durationMs;
+  if (input.status === "failed") job.retryCount += 1;
+  return { accepted: true, job };
+}
+
+export function simulateJobFailure(id: string) {
+  const job = jobs.get(id);
+  if (!job) throw new Error("Monitored job not found");
+  job.status = "failed";
+  job.errorMessage = `${job.name} reported a failed execution.`;
+  job.lastHeartbeatAt = now();
+  job.retryCount += 1;
+  return job;
+}
+
+export function remediateJob(id: string, action: JobAction, confirmation: "APPROVE") {
+  const job = jobs.get(id);
+  if (!job) throw new Error("Monitored job not found");
+  if (confirmation !== "APPROVE") throw new Error("Explicit APPROVE confirmation is required");
+  if (job.status !== "failed" && job.status !== "stale") throw new Error("Job does not require remediation");
+  if (action === "pause") job.status = "paused";
+  else { job.status = action === "retry" ? "running" : "succeeded"; job.errorMessage = undefined; job.lastHeartbeatAt = now(); if (action === "replay") job.lastSuccessAt = job.lastHeartbeatAt; }
+  return job;
+}
+
+export function providerConnectionStatus() {
+  return {
+    firecrawl: { configured: Boolean(process.env.FIRECRAWL_API_KEY), webhookPath: "/api/webhooks/firecrawl", api: "GET /v2/crawl/:id" },
+    apify: { configured: Boolean(process.env.APIFY_API_TOKEN), webhookPath: "/api/webhooks/apify", api: "GET /v2/actor-runs/:id" },
+    internal: { configured: true, webhookPath: "/api/jobs/heartbeat", api: "POST /api/jobs/heartbeat" },
+  };
+}
+
+export async function refreshProviderJob(id: string) {
+  const job = jobs.get(id);
+  if (!job) throw new Error("Monitored job not found");
+  if (job.provider === "internal" || job.provider === "generic-webhook") return job;
+  const token = job.provider === "firecrawl" ? process.env.FIRECRAWL_API_KEY : process.env.APIFY_API_TOKEN;
+  if (!token) return { ...job, refresh: "not-configured" as const };
+  const url = job.provider === "firecrawl" ? `https://api.firecrawl.dev/v2/crawl/${encodeURIComponent(job.externalId)}` : `https://api.apify.com/v2/actor-runs/${encodeURIComponent(job.externalId)}`;
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const body = await response.json() as any;
+  if (!response.ok) throw new Error(`${job.provider} status request failed with ${response.status}`);
+  const raw = String(body.status ?? body.data?.status ?? "running").toLowerCase();
+  const status: JobStatus = raw.includes("complete") || raw.includes("succeed") ? "succeeded" : raw.includes("fail") || raw.includes("error") ? "failed" : raw.includes("abort") ? "paused" : "running";
+  return ingestProviderEvent(job.provider, { externalId: job.externalId, status, message: body.error ?? body.data?.errorMessage });
 }
