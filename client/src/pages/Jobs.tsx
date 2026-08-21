@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
 import { UrlMonitorCard } from "@/components/UrlMonitorCard";
 import { ConfiguredMonitorCard } from "@/components/ConfiguredMonitorCard";
+import { PlainLanguageGuide } from "@/components/PlainLanguageGuide";
 
 type Job = { id: string; name: string; provider: string; externalId: string; status: string; lastHeartbeatAt: string; lastSuccessAt?: string; durationMs?: number; retryCount: number; errorMessage?: string; endpoint?: string; suggestedAction: "retry" | "pause" | "replay"; metadata: Record<string, string> };
 const statusTone: Record<string, string> = { healthy: "bg-emerald-50 text-emerald-700", running: "bg-sky-50 text-sky-700", succeeded: "bg-emerald-50 text-emerald-700", failed: "bg-red-50 text-red-700", stale: "bg-amber-50 text-amber-700", paused: "bg-slate-100 text-slate-600" };
@@ -29,6 +30,7 @@ export default function Jobs() {
   const selected = jobs.find(job => job.id === selectedId) ?? filtered[0];
   const approve = () => { if (!selected || confirmation !== "APPROVE") return; remediate.mutate({ id: selected.id, action: selected.suggestedAction, confirmation: "APPROVE" }); };
   return <div className="space-y-6">
+    <PlainLanguageGuide compact />
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Background operations</p><h2 className="mt-2 text-3xl font-semibold tracking-tight">Jobs</h2><p className="mt-2 max-w-2xl text-sm text-slate-500">Monitor internal workers and external task providers through one normalized heartbeat and webhook view.</p></div><div className="flex gap-2"><Button variant="outline" onClick={() => void jobsQuery.refetch()}><RefreshCw className="mr-2 h-4 w-4" />Refresh jobs</Button><Link href="/settings"><Button variant="outline"><CloudCog className="mr-2 h-4 w-4" />Provider setup</Button></Link></div></div>
     <Card className="border-0 bg-[#0b1220] text-white shadow-sm"><CardContent className="flex flex-wrap items-center justify-between gap-4 p-5"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9bf2cb]">Payment-service cron monitor</p><p className="mt-2 text-sm text-slate-300">Configured callback: <code className="text-slate-100">/api/scheduled/payment-monitor</code> · every minute after deployment.</p><p className="mt-1 text-xs text-slate-500">Last run: {monitorQuery.data?.lastCheckedAt ? new Date(monitorQuery.data.lastCheckedAt).toLocaleString() : "Not run yet"} · Result: {monitorQuery.data?.lastResult ?? "Waiting"}</p></div><Button className="bg-[#9bf2cb] text-[#0b1220] hover:bg-[#b9f7dc]" onClick={() => runMonitor.mutate()} disabled={runMonitor.isPending}><RefreshCw className={`mr-2 h-4 w-4 ${runMonitor.isPending ? "animate-spin" : ""}`} />Run health check now</Button></CardContent></Card>
     <UrlMonitorCard />

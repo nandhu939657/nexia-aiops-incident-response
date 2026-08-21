@@ -21,6 +21,18 @@ afterEach(() => { cleanup(); workflowIncident = { ...baseIncident }; window.hist
 describe("App route map", () => {
   it.each([["/", "Overview"], ["/incidents", "Response queue"], ["/incidents/INC-001", "Incident detail"], ["/runbooks", "Knowledge base"], ["/activity", "Audit trail"], ["/settings", "Workspace configuration"], ["/jobs", "Background operations"]])("renders %s as %s", (path, heading) => { window.history.pushState({}, "", path); render(<App />); expect(screen.getAllByText(heading).length).toBeGreaterThan(0); });
 
+  it("explains Nexia concepts in plain language on the main workspaces", () => {
+    window.history.pushState({}, "", "/");
+    render(<App />);
+    expect(screen.getByText("New to Nexia? Start here")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("New to Nexia? Start here"));
+    expect(screen.getByText(/A step-by-step instruction sheet written by your team/)).toBeInTheDocument();
+    cleanup();
+    window.history.pushState({}, "", "/jobs");
+    render(<App />);
+    expect(screen.getByText("How often should we check?")).toBeInTheDocument();
+  });
+
   it("shows the guided monitoring setup and optional advanced settings", () => {
     window.history.pushState({}, "", "/jobs");
     render(<App />);
@@ -31,6 +43,7 @@ describe("App route map", () => {
     fireEvent.click(screen.getByText(/Advanced settings/));
     expect(screen.getByText("What should Nexia do when it fails?")).toBeInTheDocument();
     expect(screen.getByText("Suggested recovery action")).toBeInTheDocument();
+    expect(screen.getByText(/This chooses where Nexia prepares the alert/)).toBeInTheDocument();
   });
 
   it("navigates from the incident queue to detail and completes the guarded workflow", async () => {

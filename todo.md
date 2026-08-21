@@ -155,3 +155,11 @@
 - [x] Validate the catalog against the current UI presets and public deployment URL
 - [x] Commit and push the latest code and testing catalog to the public GitHub repository
 - [x] Verify the public remote branch and catalog link
+
+# Plain-language UI guidance
+
+- [x] Add a simple “How Nexia works” explanation to the main workspace
+- [x] Add plain-language help for health URL, runbook, monitoring frequency, failure threshold, remediation, approval, response mode, incident, and post-mortem
+- [x] Add contextual guidance to the Jobs monitoring setup and recent-check results
+- [x] Add contextual guidance to incident and runbook pages without overwhelming the screen
+- [x] Add guidance-focused UI tests, responsive visual verification, production validation, and a checkpoint
