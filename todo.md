@@ -133,3 +133,11 @@
 - [x] Add Jobs workspace configuration form for URLs, schedule, runbook, action, and response settings
 - [x] Preserve mandatory human approval for every remediation action
 - [x] Add migration verification, backend/frontend/route tests, responsive visual verification, and production build validation
+
+# User-friendly monitoring UI
+
+- [x] Simplify monitoring setup into a guided basic flow with plain-language labels and examples
+- [x] Keep the basic flow focused on URLs and frequency; show daily time only when needed and move runbook, response, and threshold controls into an optional advanced section
+- [x] Improve status/result explanations and next-step guidance for non-technical users
+- [x] Add UI tests and responsive visual verification for the revised Jobs monitoring experience
+- [x] Save a checkpoint for the user-friendly monitoring UI update

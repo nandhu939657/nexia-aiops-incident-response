@@ -21,6 +21,18 @@ afterEach(() => { cleanup(); workflowIncident = { ...baseIncident }; window.hist
 describe("App route map", () => {
   it.each([["/", "Overview"], ["/incidents", "Response queue"], ["/incidents/INC-001", "Incident detail"], ["/runbooks", "Knowledge base"], ["/activity", "Audit trail"], ["/settings", "Workspace configuration"], ["/jobs", "Background operations"]])("renders %s as %s", (path, heading) => { window.history.pushState({}, "", path); render(<App />); expect(screen.getAllByText(heading).length).toBeGreaterThan(0); });
 
+  it("shows the guided monitoring setup and optional advanced settings", () => {
+    window.history.pushState({}, "", "/jobs");
+    render(<App />);
+    expect(screen.getByText("Set up automatic monitoring")).toBeInTheDocument();
+    expect(screen.getByText("Which application should we watch?")).toBeInTheDocument();
+    expect(screen.getByText("How often should we check?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /start monitoring/i })).toBeDisabled();
+    fireEvent.click(screen.getByText(/Advanced settings/));
+    expect(screen.getByText("What should Nexia do when it fails?")).toBeInTheDocument();
+    expect(screen.getByText("Suggested recovery action")).toBeInTheDocument();
+  });
+
   it("navigates from the incident queue to detail and completes the guarded workflow", async () => {
     window.history.pushState({}, "", "/incidents");
     const view = render(<App />);
