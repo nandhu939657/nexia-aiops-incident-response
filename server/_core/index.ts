@@ -10,6 +10,8 @@ import { createContext } from "./context";
 import { getPaymentHealthResponse, heartbeatJob, ingestProviderEvent } from "../incidentEngine";
 import { sdk } from "./sdk";
 import { getPaymentMonitorState, runPaymentMonitor } from "../paymentMonitor";
+import { checkConfiguredUrls } from "../urlMonitor";
+import { getMonitorConfigurationByTaskUid, recordMonitorCheck } from "../monitorConfig";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -49,6 +51,19 @@ async function startServer() {
     res.status(401).json({ ok: false, error: "invalid-job-token" });
     return false;
   };
+  app.post("/api/scheduled/user-monitor", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isCron || !user.taskUid) return res.status(403).json({ ok: false, error: "cron-only" });
+      const config = await getMonitorConfigurationByTaskUid(user.taskUid);
+      if (!config || !config.enabled) return res.json({ ok: true, skipped: "orphan-or-disabled" });
+      const result = await checkConfiguredUrls(config.applicationUrl, config.healthUrl ?? undefined);
+      await recordMonitorCheck(config.id, { status: result.overall === "unreachable" ? "unreachable" : result.overall === "healthy" ? "healthy" : "degraded", detail: `${result.overall}: ${result.application.detail}${result.health ? `; health: ${result.health.detail}` : ""}` });
+      return res.json({ ok: true, monitorId: config.id, checkedAt: result.checkedAt, overall: result.overall, responseMode: config.responseMode, responseContactConfigured: Boolean(config.responseContact), approvalRequired: true, approvedAction: config.approvedAction });
+    } catch (error) {
+      return res.status(500).json({ ok: false, error: error instanceof Error ? error.message : "scheduled-user-monitor-failed", context: { path: "/api/scheduled/user-monitor" }, timestamp: new Date().toISOString() });
+    }
+  });
   app.post("/api/scheduled/payment-monitor", async (req, res) => {
     try {
       const user = await sdk.authenticateRequest(req);

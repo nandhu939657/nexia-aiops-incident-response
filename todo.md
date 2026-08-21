@@ -111,3 +111,25 @@
 - [x] Commit and push the setup guide to the private GitHub repository
 - [x] Verify the pushed documentation on GitHub
 
+
+# Transient application URL monitoring
+
+- [x] Add transient application URL and health URL input flow without persisting submitted URL values or response data
+- [x] Add server-side URL validation and safe outbound HTTP checks with timeout and SSRF protections
+- [x] Add a curated test URL catalog and clear test-mode guidance
+- [x] Add on-demand URL checks to the dashboard with reachability, status, latency, and health-contract results
+- [x] Integrate persisted monitor profiles with the platform-compatible scheduled monitor without using in-process timers; document that non-persistent URL checks are on-demand only
+- [x] Add frontend, backend, and route-level tests for URL validation, check results, privacy behavior, and failure handling
+- [x] Save an updated checkpoint after final responsive UI, test, and production-build validation
+
+# Configurable user monitoring
+
+- [x] Add persisted per-user monitor configuration for application URL, health URL, frequency, schedule time, runbook instructions, response/contact settings, failure threshold, and approved action
+- [x] Add schema migration and ownership-safe database helpers for monitor configurations
+- [x] Add user-facing tRPC procedures to create, update, pause, resume, check, and delete monitor configurations
+- [x] Add platform Heartbeat creation and task UID persistence for configured monitors
+- [x] Add `/api/scheduled/user-monitor` callback that looks up configuration by cron task UID and runs idempotent checks
+- [x] Capture configurable response/contact settings and expose a dispatch-ready response plan without exposing secrets or sending unapproved remediation
+- [x] Add Jobs workspace configuration form for URLs, schedule, runbook, action, and response settings
+- [x] Preserve mandatory human approval for every remediation action
+- [x] Add migration verification, backend/frontend/route tests, responsive visual verification, and production build validation
