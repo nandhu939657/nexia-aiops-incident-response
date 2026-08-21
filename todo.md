@@ -103,3 +103,11 @@
 - [x] Verify every packaged runbook exists at the runtime path expected by the bundled server
 - [x] Run typecheck, tests, production build, and a production-style startup smoke test
 - [x] Save and deliver a corrected deployment checkpoint
+
+# Local setup documentation
+
+- [x] Add a complete Markdown guide covering local prerequisites, installation, environment variables, database setup, optional integrations, and run commands
+- [x] Validate the guide against the current project scripts and configuration
+- [x] Commit and push the setup guide to the private GitHub repository
+- [x] Verify the pushed documentation on GitHub
+
