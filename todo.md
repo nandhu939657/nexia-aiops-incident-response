@@ -151,7 +151,7 @@
 
 # Testing URL catalog and GitHub sync
 
-- [ ] Add a Markdown catalog of normal, health, failure, and Nexia self-test URLs with expected results
-- [ ] Validate the catalog against the current UI presets and public deployment URL
-- [ ] Commit and push the latest code and testing catalog to the public GitHub repository
-- [ ] Verify the public remote branch and catalog link
+- [x] Add a Markdown catalog of normal, health, failure, and Nexia self-test URLs with expected results
+- [x] Validate the catalog against the current UI presets and public deployment URL
+- [x] Commit and push the latest code and testing catalog to the public GitHub repository
+- [x] Verify the public remote branch and catalog link

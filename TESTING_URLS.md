@@ -8,7 +8,7 @@ Use this pair for the first test:
 
 | Field | URL | Expected result |
 |---|---|---|
-| Application URL | `https://httpbin.org/get` | The endpoint should be reachable and return HTTP 200. |
+| Application URL | `https://example.com` | The public homepage should be reachable and return HTTP 200. |
 | Health URL | `https://httpbin.org/status/200` | The endpoint should return HTTP 200. |
 
 After entering both URLs, select **Submit and check**. Nexia should show an overall **healthy** result and display the response status and latency.
@@ -29,7 +29,7 @@ Nexia should report that the health check is unhealthy or needs attention. This 
 The following public endpoint returns JSON and is useful for basic response inspection:
 
 ```text
-Application URL: https://httpbin.org/get
+Application URL: https://example.com
 Health URL:      https://httpbin.org/json
 ```
 
