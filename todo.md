@@ -148,3 +148,10 @@
 - [x] Keep a session-only recent URL history without persisting submitted URLs or response data
 - [x] Show selected recent-check status with reachability, HTTP status, latency, and health-contract details
 - [x] Add focused UI coverage, responsive visual verification, production validation, and a checkpoint
+
+# Testing URL catalog and GitHub sync
+
+- [ ] Add a Markdown catalog of normal, health, failure, and Nexia self-test URLs with expected results
+- [ ] Validate the catalog against the current UI presets and public deployment URL
+- [ ] Commit and push the latest code and testing catalog to the public GitHub repository
+- [ ] Verify the public remote branch and catalog link
