@@ -141,3 +141,10 @@
 - [x] Improve status/result explanations and next-step guidance for non-technical users
 - [x] Add UI tests and responsive visual verification for the revised Jobs monitoring experience
 - [x] Save a checkpoint for the user-friendly monitoring UI update
+
+# Recent transient URL checks
+
+- [x] Add a clear Submit and check button to the transient URL checker
+- [x] Keep a session-only recent URL history without persisting submitted URLs or response data
+- [x] Show selected recent-check status with reachability, HTTP status, latency, and health-contract details
+- [x] Add focused UI coverage, responsive visual verification, production validation, and a checkpoint
