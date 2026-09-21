@@ -18,7 +18,7 @@ vi.mock("./_core/llm", () => ({
 }));
 
 import { appRouter } from "./routers";
-import { getServiceStatus, setServiceStatus } from "./incidentEngine";
+import { approveRemediation, createIncidentFromAlert, getServiceStatus, setServiceStatus } from "./incidentEngine";
 
 const ctx = {
   user: null,
@@ -68,6 +68,24 @@ describe("incident response workflow", () => {
     expect(resolved.postMortemMarkdown).toContain("# ");
     expect(resolved.postMortemMarkdown).toContain("## Follow-up items");
     expect(getServiceStatus()).toBe("healthy");
+  });
+
+  it("does not touch the mock payment service or claim it was restored when resolving a non-payment-service incident", async () => {
+    setServiceStatus("unhealthy");
+    const incident = await createIncidentFromAlert({
+      serviceName: "https://example.com",
+      severity: "Warning",
+      errorRate: 1,
+      affectedUsers: 0,
+      timestamp: new Date().toISOString(),
+      alertType: "url_unreachable",
+      message: "Endpoint unreachable",
+    });
+    const resolved = approveRemediation(incident.id);
+    expect(resolved.actionResult).toContain("no direct access to restart");
+    expect(resolved.actionResult).toContain("https://example.com");
+    expect(resolved.actionResult).not.toContain("Mock payment service restored");
+    expect(getServiceStatus()).toBe("unhealthy");
   });
 });
 

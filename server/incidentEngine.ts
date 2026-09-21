@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { invokeLLM } from "./_core/llm";
+import { ENV } from "./_core/env";
 import type { PaymentHealthPayload } from "./paymentHealth";
 
 export type ServiceStatus = "healthy" | "unhealthy";
@@ -144,6 +145,7 @@ function searchRunbook(alert: Alert): Runbook {
 
 async function classifyAlert(alert: Alert, runbook: Runbook) {
   const response = await invokeLLM({
+    model: ENV.llmModel || undefined,
     messages: [
       {
         role: "system",
@@ -225,7 +227,14 @@ export async function createIncident() {
     alertType: serviceStatus === "unhealthy" ? "health_check_failed" : "health_check_recovered",
     message: serviceStatus === "unhealthy" ? "Payment API is not responding" : "Payment API is healthy",
   };
-  const runbook = searchRunbook(alert);
+  return createIncidentFromAlert(alert);
+}
+
+export async function createIncidentFromAlert(alert: Alert, runbookOverride?: { title: string; action: string; markdown: string }) {
+  const timestamp = now();
+  const runbook: Runbook = runbookOverride
+    ? { id: `custom-${alert.serviceName}`, title: runbookOverride.title, incidentType: alert.alertType, severity: alert.severity, action: runbookOverride.action, markdown: runbookOverride.markdown, keywords: [] }
+    : searchRunbook(alert);
   const classification = await classifyAlert(alert, runbook);
   const id = `INC-${String(incidents.size + 1).padStart(3, "0")}`;
   const incident: Incident = {
@@ -261,8 +270,12 @@ export function approveRemediation(id: string) {
   incident.status = "Remediating";
   incident.approvedAt = now();
   incident.actionTaken = incident.runbook.action;
-  serviceStatus = "healthy";
-  incident.actionResult = "Mock payment service restored successfully.";
+  if (incident.alert.serviceName === "payment-service") {
+    serviceStatus = "healthy";
+    incident.actionResult = "Mock payment service restored successfully.";
+  } else {
+    incident.actionResult = `Approved. Nexia has no direct access to restart "${incident.alert.serviceName}" — carry out the approved action above, then re-check the URL to confirm it recovered.`;
+  }
   incident.status = "Resolved";
   incident.resolvedAt = now();
   incident.notification = [

@@ -1,15 +1,19 @@
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
+// `prepare: false` is required for Supabase's transaction-mode pooler (port
+// 6543), which does not support session-scoped prepared statements.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL, { prepare: false });
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -68,7 +72,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {

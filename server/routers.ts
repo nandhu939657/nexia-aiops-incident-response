@@ -3,7 +3,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { parse as parseCookie } from "cookie";
 import { createHeartbeatJob, deleteHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
 import { protectedProcedure } from "./_core/trpc";
-import { createMonitorConfiguration, deleteMonitorConfiguration, getMonitorConfiguration, listMonitorConfigurations, updateMonitorConfiguration } from "./monitorConfig";
+import { createMonitorConfiguration, deleteMonitorConfiguration, getMonitorConfiguration, listMonitorChecks, listMonitorConfigurations, recordMonitorCheckResult, updateMonitorConfiguration } from "./monitorConfig";
 import { getPaymentMonitorState, runPaymentMonitor } from "./paymentMonitor";
 import { checkConfiguredUrls, URL_TEST_PRESETS } from "./urlMonitor";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -74,6 +74,17 @@ export const appRouter = router({
     testPresets: publicProcedure.query(() => URL_TEST_PRESETS),
     checkUrls: publicProcedure.input(z.object({ applicationUrl: z.string().min(1), healthUrl: z.string().optional() })).mutation(({ input }) => checkConfiguredUrls(input.applicationUrl, input.healthUrl)),
     list: protectedProcedure.query(({ ctx }) => listMonitorConfigurations(ctx.user.id)),
+    get: protectedProcedure.input(z.object({ id: z.number().int() })).query(async ({ input, ctx }) => {
+      const config = await getMonitorConfiguration(input.id, ctx.user.id);
+      if (!config) throw new Error("Monitor configuration not found");
+      return config;
+    }),
+    history: protectedProcedure.input(z.object({ id: z.number().int(), limit: z.number().int().min(1).max(200).optional() })).query(async ({ input, ctx }) => {
+      const config = await getMonitorConfiguration(input.id, ctx.user.id);
+      if (!config) throw new Error("Monitor configuration not found");
+      const checks = await listMonitorChecks(input.id, input.limit ?? 100);
+      return { config, checks };
+    }),
     create: protectedProcedure.input(z.object({ name: z.string().min(1).max(120), applicationUrl: z.string().url(), healthUrl: z.string().url().optional(), cronExpression: z.string().min(1), timezone: z.string().min(1).max(64), runbookMarkdown: z.string().min(1).max(8000), responseMode: z.enum(["dashboard", "email", "omnidim"]), responseContact: z.string().max(320).optional(), failureThreshold: z.number().int().min(1).max(10), approvedAction: z.string().min(1).max(180) })).mutation(async ({ input, ctx }) => {
       const config = await createMonitorConfiguration(ctx.user.id, input);
       if (!config) throw new Error("Monitor configuration could not be created");
@@ -111,7 +122,9 @@ export const appRouter = router({
     checkSaved: protectedProcedure.input(z.object({ id: z.number().int() })).mutation(async ({ input, ctx }) => {
       const config = await getMonitorConfiguration(input.id, ctx.user.id);
       if (!config) throw new Error("Monitor configuration not found");
-      return checkConfiguredUrls(config.applicationUrl, config.healthUrl ?? undefined);
+      const result = await checkConfiguredUrls(config.applicationUrl, config.healthUrl ?? undefined);
+      const recorded = await recordMonitorCheckResult(config, result, "manual");
+      return { ...result, incidentCreated: recorded.incidentCreated, incidentId: recorded.incidentId };
     }),
   }),
   jobs: router({

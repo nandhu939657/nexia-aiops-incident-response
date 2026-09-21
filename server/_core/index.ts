@@ -11,7 +11,7 @@ import { getPaymentHealthResponse, heartbeatJob, ingestProviderEvent } from "../
 import { sdk } from "./sdk";
 import { getPaymentMonitorState, runPaymentMonitor } from "../paymentMonitor";
 import { checkConfiguredUrls } from "../urlMonitor";
-import { getMonitorConfigurationByTaskUid, recordMonitorCheck } from "../monitorConfig";
+import { getMonitorConfigurationByTaskUid, recordMonitorCheckResult } from "../monitorConfig";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -58,8 +58,8 @@ async function startServer() {
       const config = await getMonitorConfigurationByTaskUid(user.taskUid);
       if (!config || !config.enabled) return res.json({ ok: true, skipped: "orphan-or-disabled" });
       const result = await checkConfiguredUrls(config.applicationUrl, config.healthUrl ?? undefined);
-      await recordMonitorCheck(config.id, { status: result.overall === "unreachable" ? "unreachable" : result.overall === "healthy" ? "healthy" : "degraded", detail: `${result.overall}: ${result.application.detail}${result.health ? `; health: ${result.health.detail}` : ""}` });
-      return res.json({ ok: true, monitorId: config.id, checkedAt: result.checkedAt, overall: result.overall, responseMode: config.responseMode, responseContactConfigured: Boolean(config.responseContact), approvalRequired: true, approvedAction: config.approvedAction });
+      const recorded = await recordMonitorCheckResult(config, result, "scheduled");
+      return res.json({ ok: true, monitorId: config.id, checkedAt: result.checkedAt, overall: result.overall, responseMode: config.responseMode, responseContactConfigured: Boolean(config.responseContact), approvalRequired: true, approvedAction: config.approvedAction, incidentCreated: recorded.incidentCreated, incidentId: recorded.incidentId });
     } catch (error) {
       return res.status(500).json({ ok: false, error: error instanceof Error ? error.message : "scheduled-user-monitor-failed", context: { path: "/api/scheduled/user-monitor" }, timestamp: new Date().toISOString() });
     }

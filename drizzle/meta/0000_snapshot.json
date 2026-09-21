@@ -1,53 +1,353 @@
 {
-  "version": "5",
-  "dialect": "mysql",
-  "id": "492e9e3d-49e9-46be-9ad1-e7231673069f",
+  "id": "66c4a985-7385-4d41-b41c-1f5bf8203303",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "users": {
-      "name": "users",
+    "public.monitor_checks": {
+      "name": "monitor_checks",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "int",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "monitorConfigurationId": {
+          "name": "monitorConfigurationId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checkedAt": {
+          "name": "checkedAt",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": true
+          "default": "now()"
+        },
+        "source": {
+          "name": "source",
+          "type": "monitor_check_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'scheduled'"
+        },
+        "overall": {
+          "name": "overall",
+          "type": "monitor_check_overall",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationOk": {
+          "name": "applicationOk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationStatusCode": {
+          "name": "applicationStatusCode",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationLatencyMs": {
+          "name": "applicationLatencyMs",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationDetail": {
+          "name": "applicationDetail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "healthOk": {
+          "name": "healthOk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "healthStatusCode": {
+          "name": "healthStatusCode",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "healthLatencyMs": {
+          "name": "healthLatencyMs",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "healthDetail": {
+          "name": "healthDetail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "incidentId": {
+          "name": "incidentId",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "monitor_checks_config_idx": {
+          "name": "monitor_checks_config_idx",
+          "columns": [
+            {
+              "expression": "monitorConfigurationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "checkedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.monitor_configurations": {
+      "name": "monitor_configurations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationUrl": {
+          "name": "applicationUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "healthUrl": {
+          "name": "healthUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cronTaskUid": {
+          "name": "cronTaskUid",
+          "type": "varchar(65)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cronExpression": {
+          "name": "cronExpression",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0 * * * * *'"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UTC'"
+        },
+        "runbookMarkdown": {
+          "name": "runbookMarkdown",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "responseMode": {
+          "name": "responseMode",
+          "type": "monitor_response_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'dashboard'"
+        },
+        "responseContact": {
+          "name": "responseContact",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failureThreshold": {
+          "name": "failureThreshold",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 2
+        },
+        "approvedAction": {
+          "name": "approvedAction",
+          "type": "varchar(180)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Review the incident and restore the service after approval.'"
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "lastCheckedAt": {
+          "name": "lastCheckedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastStatus": {
+          "name": "lastStatus",
+          "type": "monitor_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastResult": {
+          "name": "lastResult",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consecutiveFailures": {
+          "name": "consecutiveFailures",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "activeIncidentId": {
+          "name": "activeIncidentId",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "monitor_configurations_user_idx": {
+          "name": "monitor_configurations_user_idx",
+          "columns": [
+            {
+              "expression": "userId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "monitor_configurations_cron_idx": {
+          "name": "monitor_configurations_cron_idx",
+          "columns": [
+            {
+              "expression": "cronTaskUid",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
         },
         "openId": {
           "name": "openId",
           "type": "varchar(64)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "email": {
           "name": "email",
           "type": "varchar(320)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "loginMethod": {
           "name": "loginMethod",
           "type": "varchar(64)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "role": {
           "name": "role",
-          "type": "enum('user','admin')",
+          "type": "user_role",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": "'user'"
         },
         "createdAt": {
@@ -55,56 +355,94 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
+          "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "onUpdate": true,
-          "default": "(now())"
+          "default": "now()"
         },
         "lastSignedIn": {
           "name": "lastSignedIn",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "users_id": {
-          "name": "users_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "openId"
           ]
         }
       },
-      "checkConstraint": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
+  "enums": {
+    "public.monitor_check_overall": {
+      "name": "monitor_check_overall",
+      "schema": "public",
+      "values": [
+        "healthy",
+        "degraded",
+        "unreachable"
+      ]
+    },
+    "public.monitor_check_source": {
+      "name": "monitor_check_source",
+      "schema": "public",
+      "values": [
+        "scheduled",
+        "manual"
+      ]
+    },
+    "public.monitor_response_mode": {
+      "name": "monitor_response_mode",
+      "schema": "public",
+      "values": [
+        "dashboard",
+        "email",
+        "omnidim"
+      ]
+    },
+    "public.monitor_status": {
+      "name": "monitor_status",
+      "schema": "public",
+      "values": [
+        "healthy",
+        "unhealthy",
+        "unreachable",
+        "degraded"
+      ]
+    },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "user",
+        "admin"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
   "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "tables": {},
-    "indexes": {}
+    "tables": {}
   }
 }
